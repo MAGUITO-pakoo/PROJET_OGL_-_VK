@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+NKCamera — Capture caméra multi-plateforme (C++17)
+==================================================
+Module runtime de capture photo/vidéo avec backend natif par plateforme :
+  - Windows : Media Foundation
+  - Linux   : V4L2
+  - macOS   : AVFoundation
+  - iOS     : AVFoundation + CoreMotion
+  - Android : Camera2 NDK
+  - Web     : backend WASM (fallback)
+  - Autres  : backend NOOP
+
+Ce module expose notamment :
+  - NkCameraTypes.h
+  - INkCameraBackend.h
+  - NkCameraSystem.h / NkCameraSystem.cpp
+"""
+
+from Jenga import *
+import shutil
+import subprocess
+
+def _pkg_exists(pkg_name: str) -> bool:
+    if not shutil.which("pkg-config"):
+        return False
+    try:
+        return subprocess.call(
+            ["pkg-config", "--exists", pkg_name],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        ) == 0
+    except Exception:
+        return False
+
+_WAYLAND_LINKS = ["pthread", "wayland-client", "xkbcommon", "wayland-cursor"]
+_WAYLAND_TEST_LINKS = ["pthread", "wayland-client", "xkbcommon"]
+_WAYLAND_DEFINES = ["NKENTSEU_FORCE_WINDOWING_WAYLAND_ONLY"]
+if _pkg_exists("libdecor-0"):
+    _WAYLAND_LINKS.append("decor-0")
+    _WAYLAND_TEST_LINKS.append("decor-0")
+    _WAYLAND_DEFINES.append("NKENTSEU_WAYLAND_LIBDECOR")
+
+_TC_WINDOWS = "nk-windows-clang-mingw"
+
+with project("NKCamera"):
+    staticlib()
+    language("C++")
+    cppdialect("C++17")
+    location(".")
+
+    includedirs([
+        "src",
+        "%{wks.location}/Externals",
+        "%{NKCore.location}/src",
+        "%{NKPlatform.location}/src",
+        "%{NKMath.location}/src",
+        "%{NKMemory.location}/src",
+        "%{NKContainers.location}/src",
+        "%{NKLogger.location}/src",
+        "%{NKThreading.location}/src",
+        "%{NKTime.location}/src",
+        "%{NKWindow.location}/src",
+        "%{NKRenderer.location}/src",
+    ])
+
+    dependson([
+        "NKCore",
+        "NKPlatform",
+        "NKMath",
+        "NKMemory",
+        "NKContainers",
+        "NKLogger",
+        "NKThreading",
+        "NKTime",
+        "NKWindow",
+        "NKRenderer",
+    ])
+
+    files([
+        "src/NKCamera/NkCameraSystem.cpp",
+        "src/NKCamera/**.h",
+    ])
+
+    objdir("%{wks.location}/Build/Obj/%{cfg.buildcfg}-%{cfg.system}/%{prj.name}")
+    targetdir("%{wks.location}/Build/Lib/%{cfg.buildcfg}-%{cfg.system}")
+
+    with filter("system:Windows && options:windows-runtime=uwp"):
+        objdir("%{wks.location}/Build/Obj/%{cfg.buildcfg}-%{cfg.system}-uwp/%{prj.name}")
+        targetdir("%{wks.location}/Build/Lib/%{cfg.buildcfg}-%{cfg.system}-uwp")
+
+    # ===== Windows ================================================================
+    with filter("system:Windows && !options:windows-runtime=uwp && !system:XboxSeries && !system:XboxOne"):
+        usetoolchain(_TC_WINDOWS)
+        defines([
+            "WIN32_LEAN_AND_MEAN",
+            "_UNICODE",
+            "UNICODE",
+        ])
+        links([
+            "mf",
+            "mfplat",
+            "mfreadwrite",
+            "mfuuid",
+            "ole32",
+            "user32",
+        ])
+
+    # ===== Linux headless =========================================================
+    with filter("system:Linux && options:linux-backend=headless || system:Linux && options:headless"):
+        objdir("%{wks.location}/Build/Obj/%{cfg.buildcfg}-%{cfg.system}-headless/%{prj.name}")
+        targetdir("%{wks.location}/Build/Lib/%{cfg.buildcfg}-%{cfg.system}-headless")
+        defines(["NKENTSEU_FORCE_WINDOWING_NOOP_ONLY"])
+        links(["pthread"])
+
+    # ===== Linux (XLib/XCB/Wayland) ==============================================
+    with filter("system:Linux && options:linux-backend=xlib || system:Linux && !options:linux-backend && !options:headless"):
+        defines(["NKENTSEU_FORCE_WINDOWING_XLIB_ONLY"])
+        links(["pthread"])
+    with filter("system:Linux && options:linux-backend=xcb"):
+        objdir("%{wks.location}/Build/Obj/%{cfg.buildcfg}-%{cfg.system}-xcb/%{prj.name}")
+        targetdir("%{wks.location}/Build/Lib/%{cfg.buildcfg}-%{cfg.system}-xcb")
+        defines(["NKENTSEU_FORCE_WINDOWING_XCB_ONLY"])
+        links(["pthread"])
+    with filter("system:Linux && options:linux-backend=wayland"):
+        objdir("%{wks.location}/Build/Obj/%{cfg.buildcfg}-%{cfg.system}-wayland/%{prj.name}")
+        targetdir("%{wks.location}/Build/Lib/%{cfg.buildcfg}-%{cfg.system}-wayland")
+        defines(_WAYLAND_DEFINES)
+        links(_WAYLAND_LINKS)
+
+    # ===== macOS ==================================================================
+    with filter("system:macOS"):
+        usetoolchain("clang-native")
+        files([
+            "src/NKCamera/Backend/NkCocoaCameraBackend.mm",
+        ])
+        frameworks([
+            "AVFoundation",
+            "CoreMedia",
+            "CoreVideo",
+            "AppKit",
+            "QuartzCore",
+        ])
+
+    # ===== Android ================================================================
+    with filter("system:Android"):
+        usetoolchain("android-ndk")
+        links([
+            "android",
+            "log",
+            "camera2ndk",
+            "mediandk",
+        ])
+        androidapplicationid("com.nkentseu.nkcamera")
+        androidminsdk(24)
+        androidtargetsdk(34)
+        androidcompilesdk(34)
+        androidabis(["armeabi-v7a", "arm64-v8a", "x86", "x86_64"])
+        androidnativeactivity(True)
+        androidpermissions([
+            "android.permission.CAMERA",
+        ])
+
+    # ===== iOS ====================================================================
+    with filter("system:iOS"):
+        files([
+            "src/NKCamera/Backend/NkUIKitCameraBackend.mm",
+        ])
+        frameworks([
+            "AVFoundation",
+            "CoreMedia",
+            "CoreVideo",
+            "CoreMotion",
+            "UIKit",
+            "QuartzCore",
+        ])
+        iosbundleid("com.nkentseu.nkcamera")
+        iosversion("1.0")
+        iosminsdk("14.0")
+        iosbuildnumber(1)
+
+    # ===== Web ====================================================================
+    with filter("system:Web"):
+        usetoolchain("emscripten")
+
+    # ===== UWP ====================================================================
+    with filter("system:UWP || system:Windows && options:windows-runtime=uwp"):
+        usetoolchain("xbox-clang")
+        defines(["NKENTSEU_PLATFORM_UWP"])
+        links(["windowsapp"])
+
+    # ===== Xbox ===================================================================
+    with filter("system:XboxSeries || system:XboxOne"):
+        usetoolchain("xbox-clang")
+        defines(["NKENTSEU_PLATFORM_XBOX"])
+
+    with filter("config:Debug"):
+        defines(["_DEBUG", "DEBUG"])
+        optimize("Off")
+        symbols(True)
+    with filter("config:Release"):
+        defines(["NDEBUG"])
+        optimize("Speed")
+        symbols(False)
+
+    # Tests unitaires/benchmarks (desktop uniquement)
+    with filter("(system:Linux || system:macOS || (system:Windows && !options:windows-runtime=uwp && !system:XboxSeries && !system:XboxOne)) && !system:Android && !system:iOS && !system:Web"):
+        with test():
+            testfiles(["tests/**.cpp"])
+            # Force explicit static link order for GNU/MinGW linkers.
+            links([
+                "NKCamera",
+                "NKRenderer",
+                "NKWindow",
+                "NKLogger",
+                "NKContainers",
+                "NKMemory",
+                "NKThreading",
+                "NKTime",
+                "NKMath",
+                "NKCore",
+                "NKPlatform",
+            ])
+            with filter("system:Linux && options:linux-backend=wayland"):
+                defines(_WAYLAND_DEFINES)
+                links(_WAYLAND_TEST_LINKS)
+            with filter("system:Linux && options:linux-backend=xcb"):
+                defines(["NKENTSEU_FORCE_WINDOWING_XCB_ONLY"])
+                links(["pthread", "xcb", "xcb-image", "xcb-icccm", "xcb-randr", "xcb-xfixes", "X11-xcb", "xkbcommon", "xkbcommon-x11"])
+            with filter("system:Linux && options:linux-backend=xlib || system:Linux && !options:linux-backend && !options:headless"):
+                defines(["NKENTSEU_FORCE_WINDOWING_XLIB_ONLY"])
+                links(["pthread", "X11"])

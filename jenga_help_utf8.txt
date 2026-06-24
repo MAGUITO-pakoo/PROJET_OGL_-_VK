@@ -1,0 +1,54 @@
+﻿
+[36mÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù[0m
+[36mÔòæ[0m                                                                  [36mÔòæ[0m
+[36mÔòæ[0m           [1m[35m     ÔûêÔûêÔòùÔûêÔûêÔûêÔûêÔûêÔûêÔûêÔòùÔûêÔûêÔûêÔòù   ÔûêÔûêÔòù ÔûêÔûêÔûêÔûêÔûêÔûêÔòù  ÔûêÔûêÔûêÔûêÔûêÔòù[0m             [36mÔòæ[0m
+[36mÔòæ[0m           [1m[35m     ÔûêÔûêÔòæÔûêÔûêÔòöÔòÉÔòÉÔòÉÔòÉÔòØÔûêÔûêÔûêÔûêÔòù  ÔûêÔûêÔòæÔûêÔûêÔòöÔòÉÔòÉÔòÉÔòÉÔòØ ÔûêÔûêÔòöÔòÉÔòÉÔûêÔûêÔòù[0m            [36mÔòæ[0m
+[36mÔòæ[0m           [1m[35m     ÔûêÔûêÔòæÔûêÔûêÔûêÔûêÔûêÔòù  ÔûêÔûêÔòöÔûêÔûêÔòù ÔûêÔûêÔòæÔûêÔûêÔòæ  ÔûêÔûêÔûêÔòùÔûêÔûêÔûêÔûêÔûêÔûêÔûêÔòæ[0m            [36mÔòæ[0m
+[36mÔòæ[0m           [1m[35mÔûêÔûê   ÔûêÔûêÔòæÔûêÔûêÔòöÔòÉÔòÉÔòØ  ÔûêÔûêÔòæÔòÜÔûêÔûêÔòùÔûêÔûêÔòæÔûêÔûêÔòæ   ÔûêÔûêÔòæÔûêÔûêÔòöÔòÉÔòÉÔûêÔûêÔòæ[0m            [36mÔòæ[0m
+[36mÔòæ[0m           [1m[35mÔòÜÔûêÔûêÔûêÔûêÔûêÔòöÔòØÔûêÔûêÔûêÔûêÔûêÔûêÔûêÔòùÔûêÔûêÔòæ ÔòÜÔûêÔûêÔûêÔûêÔòæÔòÜÔûêÔûêÔûêÔûêÔûêÔûêÔòöÔòØÔûêÔûêÔòæ  ÔûêÔûêÔòæ[0m            [36mÔòæ[0m
+[36mÔòæ[0m           [1m[35m ÔòÜÔòÉÔòÉÔòÉÔòÉÔòØ ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØÔòÜÔòÉÔòØ  ÔòÜÔòÉÔòÉÔòÉÔòØ ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ ÔòÜÔòÉÔòØ  ÔòÜÔòÉÔòØ[0m            [36mÔòæ[0m
+[36mÔòæ[0m                                                                  [36mÔòæ[0m
+[36mÔòæ[0m             [1mMulti-platform C/C++ Build System v2.0.1[0m             [36mÔòæ[0m
+[36mÔòæ[0m                                                                  [36mÔòæ[0m
+[36mÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ[0m
+
+Jenga Build System v2.0.1
+Usage: Jenga <command> [options]
+
+Commandes principales :
+  build, b             Compile le workspace ou un projet
+  run, r               Ex├®cute un projet
+  test, t              Lance les tests unitaires
+  clean, c             Supprime les fichiers g├®n├®r├®s
+  rebuild              Nettoie et compile
+  watch, w             Surveille les fichiers et rebuild automatiquement
+  info, i              Affiche les informations du workspace
+  gen                  G├®n├¿re des fichiers projet (CMake, VS, Makefile)
+  workspace, init      Cr├®e un nouveau workspace
+  project, create      Cr├®e un nouveau projet
+  file, add            Ajoute des fichiers/d├®pendances ├á un projet
+  examples, e          Liste et copie des projets d'exemple
+  install              Installe d├®pendances et toolchains locales
+  keygen               G├®n├¿re une keystore Android
+  sign                 Signe un APK ou IPA
+  docs                 G├®n├¿re la documentation du projet
+
+Pour plus d'aide sur une commande : Jenga <commande> --help
+
+Alias disponibles :
+  b -> build
+  r -> run
+  t -> test
+  c -> clean
+  w -> watch
+  i -> info
+  init -> workspace
+  create -> project
+  add -> file
+  k -> keygen
+  s -> sign
+  d -> docs
+  e -> examples
+  h -> help
+
+Site web: https://jenga.build

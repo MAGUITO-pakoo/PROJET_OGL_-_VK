@@ -1,0 +1,299 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+=============================================================================
+Nkentseu.jenga => Workspace principal du framework Nkentseu
+=============================================================================
+
+Framework C++ multi-plateforme de gestion de fenetres, d'evenements
+et de rendu pixel. Namespace : nkentseu
+
+Architecture et ordre de dependances :
+
+  NKPlatform  => Detection OS/arch/compilateur/CPU         (C++20)
+       â†“
+  NKCore      => Types, macros, assertions, bits            (C++20)
+       â†“            â†“
+  NKMath      => Types gÃ©omÃ©triques (Vec2, Rect, â€¦)        (C++17)
+  NKLogger    => Journalisation asynchrone multi-sink       (C++17)
+       â†“            â†“                   â†“
+  NKTime      => Gestion du temps / chrono                  (C++17)
+  NKStream    => Flux de donnÃ©es (fichier, binaireâ€¦)        (C++17)
+  NKMemory    => Gestion mÃ©moire + smart pointers           (C++17)
+       â†“
+  NKWindow    => Fenetrage, evenements, entrees             (C++17)
+       â†“
+  NKRenderer  => Rendu graphique (Software, OpenGLâ€¦)        (C++17)
+       â†“
+  Sandbox     => Application de demonstration (tous OS)     (C++17)
+
+Chaque projet possÃ¨de son propre fichier .jenga dans son rÃ©pertoire.
+Ce fichier workspace les rÃ©unit via include().
+
+Plateformes supportees :
+  Windows     => Backend Win32                   (clang-mingw)
+  Linux XLib  => Backend X11/XLib (defaut)       (clang-native / WSL2)
+  Linux XCB   => Backend X11/XCB                 (clang-native / WSL2)
+  Linux Wayland => Backend Wayland + xdg-shell   (clang-native / WSL2)
+  Linux NOOP  => Backend headless (CI/WSL)        (clang-native / WSL2)
+  macOS       => Backend Cocoa                   (clang-native)
+  Android     => NativeActivity+EGL              (android-ndk)
+  iOS         => Backend UIKit
+  Web         => Emscripten+Canvas               (emscripten)
+  HarmonyOS   => ArkUI Native
+  XboxSeries  => UWP GameCore                    (xbox-clang)
+  XboxOne     => UWP GameCore                    (xbox-clang)
+
+Usage :
+  jenga build                                            # Hote (XLib)
+  jenga build --platform windows                         # Windows
+  jenga build --platform linux                           # Linux XLib (defaut)
+  jenga build --platform linux --linux-backend xcb
+  jenga build --platform linux --linux-backend wayland
+  jenga build --platform linux --linux-backend headless  # Linux headless
+  jenga build --platform macos                           # macOS Cocoa
+  jenga build --platform android                         # Android (NDK)
+  jenga build --platform ios                             # iOS (UIKit)
+  jenga build --platform web                             # Web (Emscripten)
+  jenga build --platform windows --windows-runtime desktop
+                                                        # Windows desktop (Win32)
+  jenga build --platform windows --windows-runtime uwp
+                                                        # UWP (Windows Runtime)
+  jenga build --platform xboxseries                      # Xbox Series
+  jenga build --platform xboxone                         # Xbox One
+  jenga build --config Release                           # Build Release
+
+  Notes Wayland :
+    Prerequis : libwayland-dev, libxkbcommon-dev, wayland-protocols, libdecor-0-dev
+    Generer xdg-shell-client-protocol.h :
+      wayland-scanner client-header
+        /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
+        Modules/Runtime/NKWindow/src/NKWindow/Platform/Wayland/xdg-shell-client-protocol.h
+      wayland-scanner private-code
+        /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml
+        Modules/Runtime/NKWindow/src/NKWindow/Platform/Wayland/xdg-shell-protocol.c
+
+Auteur : Rihen
+Date   : 2026
+=============================================================================
+"""
+
+import os
+import shutil
+from Jenga import *
+from Jenga.GlobalToolchains import RegisterJengaGlobalToolchains
+
+with workspace("Nkentseu", location="."):
+    RegisterJengaGlobalToolchains()
+
+    dutc(enable=True)
+    dute(enable=True)
+
+    # Nom du toolchain Windows clang-mingw
+    TC_WINDOWS = "nk-windows-clang-mingw"
+
+    # Enregistrement du toolchain Windows avec resolution explicite du compilateur
+    if os.name == "nt":
+        _clang = shutil.which("clang")
+        _clangxx = shutil.which("clang++")
+        _llvm_ar = shutil.which("llvm-ar") or shutil.which("ar")
+        if not _clang and os.path.exists(r"C:\msys64\ucrt64\bin\clang.exe"):
+            _clang = r"C:\msys64\ucrt64\bin\clang.exe"
+        if not _clangxx and os.path.exists(r"C:\msys64\ucrt64\bin\clang++.exe"):
+            _clangxx = r"C:\msys64\ucrt64\bin\clang++.exe"
+        if not _llvm_ar and os.path.exists(r"C:\msys64\ucrt64\bin\llvm-ar.exe"):
+            _llvm_ar = r"C:\msys64\ucrt64\bin\llvm-ar.exe"
+        if not _llvm_ar and os.path.exists(r"C:\msys64\ucrt64\bin\ar.exe"):
+            _llvm_ar = r"C:\msys64\ucrt64\bin\ar.exe"
+
+        with toolchain(TC_WINDOWS, "clang"):
+            settarget("Windows", "x86_64", "mingw")
+            targettriple(r"x86_64-w64-windows-gnu")
+            ccompiler(_clang or "clang")
+            cppcompiler(_clangxx or "clang++")
+            linker(_clangxx or "clang++")
+            if _llvm_ar:
+                archiver(_llvm_ar)
+            cflags([
+                "--target=x86_64-w64-windows-gnu",
+                "-DWINVER=0x0601",
+                "-D_WIN32_WINNT=0x0601",
+            ])
+            cxxflags([
+                "--target=x86_64-w64-windows-gnu",
+                "-DWINVER=0x0601",
+                "-D_WIN32_WINNT=0x0601",
+            ])
+            ldflags(["--target=x86_64-w64-windows-gnu"])
+
+    else:
+        # Cross-compilation Windows depuis Linux/WSL2:
+        # 1) Préfère llvm-mingw (clang/clang++).
+        # 2) Fallback MinGW GCC si clang n'est pas disponible.
+        _mingw_clang   = shutil.which("x86_64-w64-mingw32-clang")
+        _mingw_clangxx = shutil.which("x86_64-w64-mingw32-clang++")
+        _mingw_gcc     = shutil.which("x86_64-w64-mingw32-gcc")
+        _mingw_gxx     = shutil.which("x86_64-w64-mingw32-g++")
+        _llvm_ar       = shutil.which("llvm-ar")
+        _mingw_ar      = shutil.which("x86_64-w64-mingw32-ar")
+
+        if _mingw_clangxx:
+            with toolchain(TC_WINDOWS, "clang"):
+                settarget("Windows", "x86_64", "mingw")
+                targettriple("x86_64-w64-windows-gnu")
+                ccompiler(_mingw_clang or "x86_64-w64-mingw32-clang")
+                cppcompiler(_mingw_clangxx)
+                linker(_mingw_clangxx)
+                if _llvm_ar:
+                    archiver(_llvm_ar)
+                elif _mingw_ar:
+                    archiver(_mingw_ar)
+                cflags([
+                    "--target=x86_64-w64-windows-gnu",
+                    "-DWINVER=0x0601",
+                    "-D_WIN32_WINNT=0x0601",
+                ])
+                cxxflags([
+                    "--target=x86_64-w64-windows-gnu",
+                    "-DWINVER=0x0601",
+                    "-D_WIN32_WINNT=0x0601",
+                ])
+                ldflags(["--target=x86_64-w64-windows-gnu"])
+        elif _mingw_gxx:
+            with toolchain(TC_WINDOWS, "gcc"):
+                settarget("Windows", "x86_64", "mingw")
+                ccompiler(_mingw_gcc or "x86_64-w64-mingw32-gcc")
+                cppcompiler(_mingw_gxx)
+                linker(_mingw_gxx)
+                archiver(_mingw_ar or "x86_64-w64-mingw32-ar")
+                cflags([
+                    "-DWINVER=0x0601",
+                    "-D_WIN32_WINNT=0x0601",
+                ])
+                cxxflags([
+                    "-DWINVER=0x0601",
+                    "-D_WIN32_WINNT=0x0601",
+                ])
+
+    configurations(["Debug", "Release"])
+
+    # ===== Options Linux : choix du backend de fenetrage ========================
+    newoption(
+        trigger="linux-backend",
+        value="BACKEND",
+        allowed=[
+            ["xlib",     "X11/XLib  (defaut, le plus compatible)"],
+            ["xcb",      "X11/XCB   (plus leger, asynchrone)"],
+            ["wayland",  "Wayland   (compositeurs modernes, sans X11)"],
+            ["headless", "Pas de fenetre (CI, serveurs, WSL sans ecran)"],
+        ],
+        default="xlib",
+        description="Backend de fenetrage Linux"
+    )
+
+    newoption(
+        trigger="headless",
+        description="[Obsolete] Utiliser --options linux-backend=headless"
+    )
+
+    # ===== Option Windows : Desktop vs UWP ====================================
+    # Jenga v2.0.1 n'expose pas TargetOS.UWP; on route UWP via une option.
+    newoption(
+        trigger="windows-runtime",
+        value="RUNTIME",
+        allowed=[
+            ["desktop", "Windows desktop classique (Win32)"],
+            ["uwp",     "Windows Runtime (UWP)"],
+        ],
+        default="desktop",
+        description="Runtime Windows cible (desktop ou UWP)"
+    )
+
+    # ===== Plateformes et architectures cibles ==================================
+    targetoses([
+        TargetOS.WINDOWS,
+        TargetOS.LINUX,
+        TargetOS.MACOS,
+        TargetOS.ANDROID,
+        TargetOS.IOS,
+        TargetOS.WEB,
+        TargetOS.HARMONYOS,
+        TargetOS.XBOX_SERIES,
+        TargetOS.XBOX_ONE,
+    ])
+
+    targetarchs([
+        TargetArch.X86_64,   # Desktop (Windows, Linux, macOS, Xbox)
+        TargetArch.ARM64,    # Mobile  (Android, iOS)
+        TargetArch.WASM32,   # Web     (Emscripten)
+    ])
+
+    emscriptenfullscreenshell(True)
+
+    # androidsdkpath(os.getenv("ANDROID_SDK_ROOT", ""))
+    # androidndkpath(os.getenv("ANDROID_NDK_ROOT", os.getenv("ANDROID_NDK_HOME", "")))
+
+    # ── Android SDK/NDK paths (from environment) ─────────────────────────
+    androidsdkpath(os.getenv("ANDROID_SDK_ROOT", ""))
+    androidndkpath(os.getenv("ANDROID_NDK_ROOT", ""))
+
+    with unitest() as u:
+        u.Compile()
+
+    startproject("Sandbox")
+
+    # =========================================================================
+    # Inclusion de chaque projet depuis son propre fichier .jenga
+    # L'ordre respecte la chaine de dependances.
+    # =========================================================================
+
+    with include("Modules/Foundation/NKPlatform/NKPlatform.jenga"):
+        pass
+
+    with include("Modules/Foundation/NKCore/NKCore.jenga"):
+        pass
+
+    with include("Modules/System/NKLogger/NKLogger.jenga"):
+        pass
+
+    with include("Modules/Foundation/NKMath/NKMath.jenga"):
+        pass
+
+    with include("Modules/Foundation/NKMemory/NKMemory.jenga"):
+        pass
+
+    with include("Modules/Foundation/NKContainers/NKContainers.jenga"):
+        pass
+
+    with include("Modules/System/NKTime/NKTime.jenga"):
+        pass
+
+    with include("Modules/System/NKStream/NKStream.jenga"):
+        pass
+
+    with include("Modules/System/NKThreading/NKThreading.jenga"):
+        pass
+
+    with include("Modules/System/NKFileSystem/NKFileSystem.jenga"):
+        pass
+
+    with include("Modules/System/NKReflection/NKReflection.jenga"):
+        pass
+
+    with include("Modules/System/NKSerialization/NKSerialization.jenga"):
+        pass
+
+    with include("Modules/Runtime/NKWindow/NKWindow.jenga"):
+        pass
+
+    with include("Externals/Libs/Glad/Glad.jenga"):
+        pass
+
+    with include("Modules/Runtime/NKRenderer/NKRenderer.jenga"):
+        pass
+
+    with include("Modules/Runtime/NKCamera/NKCamera.jenga"):
+        pass
+
+    with include("Applications/Sandbox/Sandbox.jenga"):
+        pass
